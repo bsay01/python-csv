@@ -47,6 +47,24 @@ files.sort()
 
 print("\nFile search complete\n")
 
+# this block confirms which files should be used. any entry throws error, do not use.
+"""
+allFilesInput = input("all of these files will be combined. is this correct? (y/n):")
+print(allFilesInput)
+
+if allFilesInput.lower == "n":
+    for file in files:
+        use = input("Use file \"" + file + "\"? (y/n):")
+        if use.lower == "y": continue
+        elif use.lower != "n":
+            print("Error: invalid input.\nPlease enter y or n next time.\n\nExiting...\n")
+            exit()
+        else: files.remove(file)
+elif allFilesInput.lower != "y":
+    print("Error: invalid input.\nPlease enter y or n next time.\n\nExiting...\n")
+    exit()
+"""
+
 print("Compiling files...\n")
 
 complete_dataframe = pandas.DataFrame()
