@@ -1,2 +1,5 @@
+# ignore all output data
 output_data/**
-!output_data/info.md
+
+# keep empty output_data folder
+!output_data/0-info.md
