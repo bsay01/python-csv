@@ -1,81 +1,69 @@
-import os, csv
+import os, pandas
 
-### FUNCTIONS ###
+print("\nLooking for files...\n")
 
-# returns a list of relative paths to all csv files in the working folder
+# returns a list of relative paths to all csv files in the given directory
 def checkDirForCSV(dir_name = "", indent = 0):
     print("\t"*indent + "Files found in \"" + dir_name + "\" folder:")
-    indent += 1
+    indent = indent + 1
     files = []
     for entry in os.listdir(dir_name):
         if ".csv" in entry: # for a csv file
             print("\t"*indent + dir_name + "\\" + entry)
             files.append(dir_name + "\\" + entry)
-        elif "." not in entry: # for a subfolder
+        elif "." not in entry: # for a subdirectory
             files.extend(checkDirForCSV(dir_name + "\\" + entry, indent))
+    files.sort()
     return files
 
-# checks if a row of a parsed csv is empty. returns true if so.
-def csvRowEmpty(row):
-    isEmpty = True
-    for entry in row:
-        if entry != "": isEmpty = False
-    return isEmpty
+files = checkDirForCSV(".\\") # check for csv files
 
-### END FUNCTIONS ###
+print("\nCombining files...\n")
 
-print("\nFiles must be in the current folder or in subdirectories of the current folder.")
-print("All files must have the same headers. note that including a previous output of this file is fine.\n")
-
-# list to store files
-files = checkDirForCSV(".\\") # check for csv files in the current directory
-files.sort()
-print()
-
-# this block confirms which files should be used. any entry throws error, do not use.
-"""
-allFilesInput = input("all of these files will be combined. is this correct? (y/n):")
-print(allFilesInput)
-
-if allFilesInput.lower == "n": 
-    for file in files:
-        use = input("Use file \"" + file + "\"? (y/n):")
-        if use.lower == "y": continue
-        elif use.lower != "n":
-            print("Error: invalid input.\nPlease enter y or n next time.\n\nExiting...\n")
-            exit()
-        else: files.remove(file)
-elif allFilesInput.lower != "y":
-    print("Error: invalid input.\nPlease enter y or n next time.\n\nExiting...\n")
-    exit()
-"""
-
-allData = [] # will store the data as one giant table
+complete_dataframe = pandas.DataFrame()
 for file in files:
-    open_file = open(file)
     print("Adding file \"" + file + "\"...")
-    for row in csv.reader(open_file, delimiter = ','):
-        if not csvRowEmpty(row) and row not in allData: allData.append(row)
-    open_file.close
-print()
+    complete_dataframe = pandas.concat([complete_dataframe, pandas.read_csv(file, dtype='unicode')]).drop_duplicates()
+complete_dataframe.sort_values('time')
 
-### DATA LOADED INTO A SINGLE TABLE ###
+print("\nfixing \"NaN\" values and removing empty columns")
 
-# manipulate data here.
+complete_dataframe.replace("", float("NaN"), inplace=True)
+complete_dataframe.dropna(how = 'all', axis = 1, inplace=True)
 
-### OUTPUT TABLE AS A FILE ###
+print("\nCreating file containing combined data")
 
-finalFileName = "FINAL.csv"
+complete_dataframe.to_csv(".\\0-data_processed.csv")
 
-try: 
-    outputFile = open(".\\" + finalFileName, mode="w", newline="")
-except: 
-    print("Error: could not create or write to output file.\nThis will throw if you have the file open.\n\nExiting...\n")
-    exit()
+"""
+print("\nCreating files for individual devices...\n")
 
-print("Combining...\n")
-csv.writer(outputFile).writerows(allData)
+unique_devices = []
+this_row_device = []
+temp_df = pandas.DataFrame()
 
-outputFile.close()
+print("Creating files for the following devices:\n")
+print("{m:^19}|{i:^19}".format(m="model name", i="device id"))
+print("---------------------------------------")
 
-print("Combined csv entitled \"" + finalFileName + "\"\n\nExiting...\n")
+for model, id in zip(complete_dataframe['model'], complete_dataframe['id']):
+
+    this_row_device = [model, id]
+
+    if this_row_device not in unique_devices:
+
+        unique_devices.append(this_row_device)
+
+        print("|{model:^18}|{id:^18}|".format(model=this_row_device[0], id=this_row_device[1]))
+
+        temp_df = complete_dataframe[complete_dataframe['id'] == this_row_device[1]]
+        temp_df = temp_df[temp_df['model'] == this_row_device[0]]
+
+        temp_df.dropna(how = 'all', axis = 1, inplace = True)
+
+        temp_df.to_csv(".\\data_processed\\{model}_{id}.csv".format(model=this_row_device[0], id=this_row_device[1]))
+
+print("---------------------------------------")
+"""
+
+print("\nData processing complete\n")
