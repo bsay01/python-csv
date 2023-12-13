@@ -1,24 +1,53 @@
 import os, pandas
 
+# some parts of the script print formatted text to the console
+spaces_in_indent = 4
+
 print("\nLooking for files...\n")
 
 # returns a list of relative paths to all csv files in the given directory
-def checkDirForCSV(dir_name = "", indent = 0):
-    print("\t"*indent + "Files found in \"" + dir_name + "\" folder:")
-    indent = indent + 1
+# defaults to directory outside of the directory the script is in
+def find_csv_paths(dir_name = "..", num_indents = 0, skip_this = True):
+
+    global spaces_in_indent
+
+    print(" "*spaces_in_indent*num_indents + "in \"" + dir_name.split("\\")[-1] + "\":")
+    num_indents = num_indents + 1
     files = []
+
     for entry in os.listdir(dir_name):
+
         if ".csv" in entry: # for a csv file
-            print("\t"*indent + dir_name + "\\" + entry)
+
+            print(" "*spaces_in_indent*num_indents + "-> " + entry)
             files.append(dir_name + "\\" + entry)
-        elif "." not in entry: # for a subdirectory
-            files.extend(checkDirForCSV(dir_name + "\\" + entry, indent))
-    files.sort()
+
+        elif "." not in entry: # for anything without a file extension
+
+            new_dir_name = dir_name + "\\" + entry
+
+            # check if we actually want to look at this directory
+            if skip_this and ("python-csv" in new_dir_name):
+                print(" "*spaces_in_indent*num_indents + "\nskipping \"python-csv\" directory!\n")
+                continue
+
+            try:
+                os.listdir(new_dir_name)
+                files.extend(find_csv_paths(new_dir_name, num_indents))
+            except:
+                pass
+
+    if not files:
+        print(" "*spaces_in_indent*num_indents + "no csv files found")
+
     return files
 
-files = checkDirForCSV(".\\") # check for csv files
+files = find_csv_paths(skip_this=True) # check for csv files, skipping this repo
+files.sort()
 
-print("\nCombining files...\n")
+print("\nFile search complete\n")
+
+print("Compiling files...\n")
 
 complete_dataframe = pandas.DataFrame()
 for file in files:
@@ -26,44 +55,57 @@ for file in files:
     complete_dataframe = pandas.concat([complete_dataframe, pandas.read_csv(file, dtype='unicode')]).drop_duplicates()
 complete_dataframe.sort_values('time')
 
-print("\nfixing \"NaN\" values and removing empty columns")
+print("\nFile compilation complete\n")
+
+print("Fixing \"NaN\" values and removing empty columns")
 
 complete_dataframe.replace("", float("NaN"), inplace=True)
 complete_dataframe.dropna(how = 'all', axis = 1, inplace=True)
 
 print("\nCreating file containing combined data")
 
-complete_dataframe.to_csv(".\\0-data_processed.csv")
+complete_dataframe.to_csv(".\\output_data\\0-combined_data.csv")
 
-"""
-print("\nCreating files for individual devices...\n")
+### SEPARATE ROWS INTO SEPARATE FILES BY COLUMN VALUE ###
 
-unique_devices = []
-this_row_device = []
-temp_df = pandas.DataFrame()
+col_a = 'no column specified' # EDIT THESE FOR YOUR APPLICATION
+col_b = 'no column specified' # EDIT THESE FOR YOUR APPLICATION
 
-print("Creating files for the following devices:\n")
-print("{m:^19}|{i:^19}".format(m="model name", i="device id"))
-print("---------------------------------------")
+if (col_a != 'no column specified') or (col_b != 'no column specified'):
 
-for model, id in zip(complete_dataframe['model'], complete_dataframe['id']):
+    unique_THINGs = []
+    this_row_THING = []
+    temp_df = pandas.DataFrame()
 
-    this_row_device = [model, id]
+    complete_dataframe.sort_values(by = [col_a, col_b], inplace = True)
 
-    if this_row_device not in unique_devices:
+    print("\nCreating files for individual THINGs by unique column values in column {} and column {}...\n".format(col_a, col_b))
 
-        unique_devices.append(this_row_device)
+    print("Creating files for:\n")
+    print("{a:^22}|{b:^22}".format(a = col_a, b = col_b))
+    print("---------------------------------------------")
 
-        print("|{model:^18}|{id:^18}|".format(model=this_row_device[0], id=this_row_device[1]))
+    for a, b in zip(complete_dataframe[col_a], complete_dataframe[col_b]):
 
-        temp_df = complete_dataframe[complete_dataframe['id'] == this_row_device[1]]
-        temp_df = temp_df[temp_df['model'] == this_row_device[0]]
+        this_row_THING = [a, b]
 
-        temp_df.dropna(how = 'all', axis = 1, inplace = True)
+        if this_row_THING not in unique_THINGs:
 
-        temp_df.to_csv(".\\data_processed\\{model}_{id}.csv".format(model=this_row_device[0], id=this_row_device[1]))
+            unique_THINGs.append(this_row_THING)
 
-print("---------------------------------------")
-"""
+            print("|{a:^21}|{b:^21}|".format(a = this_row_THING[0], b = this_row_THING[1]))
 
-print("\nData processing complete\n")
+            temp_df = complete_dataframe[complete_dataframe[col_a] == this_row_THING[0]]
+            temp_df = temp_df[temp_df[col_b] == this_row_THING[1]]
+
+            temp_df.dropna(how = 'all', axis = 1, inplace = True)
+
+            temp_df.to_csv(".\\output_data\\{a}_{b}.csv".format(a=this_row_THING[0], b=this_row_THING[1]))
+
+    print("---------------------------------------------")
+
+else:
+
+    print("\nColumns not specified, so no extra files will be created.")
+
+print("\nData processing complete!\n")
