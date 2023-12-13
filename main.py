@@ -68,8 +68,8 @@ complete_dataframe.to_csv(".\\output_data\\0-combined_data.csv")
 
 ### SEPARATE ROWS INTO SEPARATE FILES BY COLUMN VALUE ###
 
-col_a = 'no column specified' # EDIT THESE FOR YOUR APPLICATION
-col_b = 'no column specified' # EDIT THESE FOR YOUR APPLICATION
+col_a = 'model' # EDIT THESE FOR YOUR APPLICATION
+col_b = 'id' # EDIT THESE FOR YOUR APPLICATION
 
 if (col_a != 'no column specified') or (col_b != 'no column specified'):
 
